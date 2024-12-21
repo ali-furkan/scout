@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+  scraper:
+    build:
+      context: ./apps/scraper
+      dockerfile: Dockerfile
+    environment:
+      SCRAPER_BASE_API: ${SCRAPER_BASE_API:-https://www.sofascore.com/api/v1}
+      PG_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db:5432/scraper"
+  db:
+    image: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - .db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${SCRAPER_PG_USER:-scraper}
+      POSTGRES_PASSWORD: ${SCRAPER_PG_PASSWORD:-scraper}
