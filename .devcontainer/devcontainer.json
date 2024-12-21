@@ -1,0 +1,27 @@
+{
+    "name": "scoutview",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "remoteUser": "vscode",
+    "workspaceFolder": "/workspaces/scoutview",
+    "features": {
+        "ghcr.io/devcontainers/features/common-utils:2": {
+            "installZsh": "true",
+            "username": "vscode",
+            "upgradePackages": "true"
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        }
+    },
+    "postCreateCommand": "sudo chown -R 1000:1000 \"/home/vscode/.npm\" && npm install -g @go-task/cli",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "njpwerner.autodocstring",
+                "ms-python.vscode-pylance"
+            ]
+        }
+    }
+}

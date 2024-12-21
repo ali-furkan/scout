@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  dep_install:
+    dir: ./apps/scraper
+    cmds:
+      - poetry install
+  run:
+    dir: ./apps/scraper
+    cmds:
+      - poetry run python ./src/main.py

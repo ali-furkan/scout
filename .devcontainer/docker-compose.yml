@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/scoutview:cached
+    command: sleep infinity
+    network_mode: service:db
+    environment:
+      SCRAPER_BASE_API: ${SCRAPER_BASE_API:-https://www.sofascore.com/api/v1}
+      PG_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db:5432/scraper"
+  db:
+    image: postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - .db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${SCRAPER_PG_USER:-scraper}
+      POSTGRES_PASSWORD: ${SCRAPER_PG_PASSWORD:-scraper}
