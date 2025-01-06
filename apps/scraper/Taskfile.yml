@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  install:
+    cmds:
+      - poetry install
+  run:
+    cmds:
+      - poetry run python ./src/main.py

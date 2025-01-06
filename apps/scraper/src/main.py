@@ -1,8 +1,12 @@
-import app
+from app import App
+import asyncio
 
-def main():
-    with app.App() as application:
-        application.run()
+async def main():
+    with App() as a:
+        from tasks import initial_job
+        await initial_job(a.scraper, a.db_session)
 
-if __name__ == '__main__':
-    main()
+        a.run()
+
+if __name__ == "__main__":
+    asyncio.run(main())
