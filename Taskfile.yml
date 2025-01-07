@@ -1,11 +1,9 @@
 version: '3'
 
-tasks:
-  dep_install:
+includes:
+  scraper:
+    taskfile: ./apps/scraper
     dir: ./apps/scraper
-    cmds:
-      - poetry install
-  run:
-    dir: ./apps/scraper
-    cmds:
-      - poetry run python ./src/main.py
+  forecast:
+    taskfile: ./apps/forecast
+    dir: ./apps/forecast
