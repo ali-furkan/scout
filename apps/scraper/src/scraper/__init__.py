@@ -1,1 +1,2 @@
-from .scraper import Scraper, ScraperConfig, ENDPOINT_MATCH_INFO
+from .scraper import Scraper, ScraperConfig
+from .bases import ENDPOINT_MATCH_INFO

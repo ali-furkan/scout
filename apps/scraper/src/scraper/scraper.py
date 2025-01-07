@@ -1,26 +1,22 @@
-import requests
-from models import Match, PlayerStat, Player, Team, TeamStat, Stadium
-
 import json
 from datetime import datetime
 import aiohttp
 import os
-from uuid import uuid4
 
-ENDPOINT_STANDING = "/unique-tournament/{league_id}/season/{season_id}/standings/total"
-ENDPOINT_NEXT_MATCHES = "/team/{team_id}/events/next/{page}"
-ENDPOINT_FINISHED_MATCHES = "/team/{team_id}/events/last/{page}"
-ENDPOINT_MATCH_INFO = "/event/{match_id}"
-ENDPOINT_MATCH_STATS = "/event/{match_id}/statistics"
-ENDPOINT_MATCH_LINEUP = "/event/{match_id}/lineups"
-ENDPOINT_PLAYER = "/player/{player_id}"
-ENDPOINT_VENUE = "/venue/{venue_id}"
-ENDPOINT_TEAM = "/team/{team_id}"
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-}
+from models import Match, PlayerStat, Player, Team, TeamStat, Stadium
+
+from .bases import (
+    ENDPOINT_STANDING,
+    ENDPOINT_NEXT_MATCHES,
+    ENDPOINT_FINISHED_MATCHES,
+    ENDPOINT_MATCH_INFO,
+    ENDPOINT_MATCH_STATS,
+    ENDPOINT_MATCH_LINEUP,
+    ENDPOINT_PLAYER,
+    ENDPOINT_VENUE,
+    ENDPOINT_TEAM,
+    HEADERS,
+)
 
 def handle_result(a_goals: int, b_goals: int) -> int:
     if a_goals > b_goals:
@@ -112,7 +108,7 @@ class Scraper:
         )
 
         stats = data_stats["statistics"][0]["groups"]
-        from .base_maps import (
+        from .bases import (
             key_map,
             doubled_key_map,
             ha_score_map,
