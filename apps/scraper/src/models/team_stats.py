@@ -14,7 +14,7 @@ class TeamStat(Base):
     match = relationship("Match", back_populates="teams_stats")
     is_overall = Column(Boolean)
     is_home = Column(Boolean)
-    lineup = Column(String)
+    formation = Column(String)
     # Stats
     # Results
     goals = Column(Integer)

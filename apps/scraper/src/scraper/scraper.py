@@ -69,8 +69,8 @@ class Scraper:
         with open(self.config.cache_file, "w") as f:
             json.dump(self.cache, f)
 
-    async def fetch_api(self, session: aiohttp.ClientSession ,endpoint: str):
-        if self.config.cache_enabled and endpoint in self.cache:
+    async def fetch_api(self, session: aiohttp.ClientSession ,endpoint: str, cache: bool = True) -> dict:
+        if self.config.cache_enabled and cache and endpoint in self.cache:
             c = self.cache[endpoint]
             if (datetime.now().timestamp() - c["timestamp"]) < self.config.cache_ttl * 60 * 10:
                 return c["data"]
@@ -142,6 +142,10 @@ class Scraper:
             info[ha_score_map[0]]["current"],
             info[ha_score_map[1]]["current"],
         ]
+        feats["formation"] = [
+            data_lineup["home"]["formation"],
+            data_lineup["away"]["formation"],
+        ]
         match.teams_stats = self.handle_team_stats(match, feats)
 
         for team in data_lineup["home"], data_lineup["away"]:
@@ -177,6 +181,7 @@ class Scraper:
             ts = TeamStat(
                 team=t,
                 match=match,
+                formation=data["formation"][i],
                 is_overall=False,
                 is_home=(i == 0),
                 goals=data["goals"][i],
@@ -325,6 +330,18 @@ class Scraper:
 
         return player
 
+    async def fetch_team_features(self, team: Team) -> Team:
+        data = None
+        async with aiohttp.ClientSession() as session:
+            data = await self.fetch_api(session,ENDPOINT_TEAM.format(team_id=team.sc_id))
+
+        if team.colors is None:
+            team.colors = data["team"]["teamColors"]
+        if team.stadium is None:
+            await self.fetch_team_stadium(team)
+
+        return team
+
     async def fetch_team_stadium(self, team: Team) -> Stadium:
         data = None
         async with aiohttp.ClientSession() as session:
@@ -339,6 +356,7 @@ class Scraper:
         stadium.slug = data["team"]["venue"]["slug"]
         stadium.capacity = data["team"]["venue"]["capacity"]
         stadium.city = data["team"]["venue"]["city"]["name"]
+        team.stadium = stadium
 
         return stadium
 
