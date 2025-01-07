@@ -7,6 +7,8 @@ from models import Base
 from apscheduler.schedulers.background import BackgroundScheduler
 from scraper import Scraper, ScraperConfig
 
+import logging
+
 class App:
     def __init__(self):
         self.db_engine: engine.Engine = None
@@ -17,6 +19,7 @@ class App:
 
     def __enter__(self):
         print('Starting application')
+        logging.basicConfig(level=logging.DEBUG)
         # Database
         self.db_engine = db.create_db_engine()
         self.db_session = db.create_session(self.db_engine)
@@ -42,7 +45,7 @@ class App:
 
         from config import Config
         if Config.get_env() == 'development':
-            self.api.run(host=Config.get_host())
+            self.api.run(host=Config.get_host(), debug=True)
 
     def close(self) -> bool:
         # if self.scheduler.running:
