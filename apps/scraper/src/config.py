@@ -6,7 +6,7 @@ class Config:
         return os.getenv("SCRAPER_CACHE_ENABLED", "true") == "true"
     
     def cache_ttl() -> int:
-        return int(os.getenv("SCRAPER_CACHE_TTL", 60))
+        return int(os.getenv("SCRAPER_CACHE_TTL", 14400))
     
     def cache_file() -> str:
         return os.getenv("SCRAPER_CACHE_FILE", "cache.json")
@@ -41,4 +41,4 @@ class Config:
 
     @staticmethod
     def get_env() -> str:
-        return os.getenv("SCRAPER_ENV", "development")
+        return os.getenv("SCOUT_ENV", "development")

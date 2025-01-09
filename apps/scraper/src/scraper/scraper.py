@@ -68,7 +68,7 @@ class Scraper:
     async def fetch_api(self, session: aiohttp.ClientSession ,endpoint: str, cache: bool = True) -> dict:
         if self.config.cache_enabled and cache and endpoint in self.cache:
             c = self.cache[endpoint]
-            if (datetime.now().timestamp() - c["timestamp"]) < self.config.cache_ttl * 60 * 10:
+            if (datetime.now().timestamp() - c["timestamp"]) < self.config.cache_ttl:
                 return c["data"]
             else:
                 del self.cache[endpoint]
