@@ -1,6 +1,9 @@
 version: '3'
 
 tasks:
+  make_deps:
+    cmds:
+      - poetry export -o requirements.txt
   install:
     cmds:
       - poetry install
