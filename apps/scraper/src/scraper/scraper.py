@@ -352,6 +352,9 @@ class Scraper:
         stadium.slug = data["team"]["venue"]["slug"]
         stadium.capacity = data["team"]["venue"]["capacity"]
         stadium.city = data["team"]["venue"]["city"]["name"]
+        coord = data["team"]["venue"].get("venueCoordinates", {"latitude": 0, "longitude":0})
+        stadium.latitude = coord[0]
+        stadium.longitude = coord[1]
         team.stadium = stadium
 
         return stadium
@@ -359,7 +362,7 @@ class Scraper:
     async def fetch_stadium(self, sc_id: int) -> Stadium:
         data = None
         async with aiohttp.ClientSession() as session:
-            data = await self.fetch_api(session,ENDPOINT_VENUE.format(venue_id=sc_id))
+            data = await self.fetch_api(session,ENDPOINT_VENUE.format(venue_id=sc_id), cache=False)
 
         stadium = Stadium()
 
@@ -368,5 +371,12 @@ class Scraper:
         stadium.slug = data["venue"]["slug"]
         stadium.capacity = data["venue"]["capacity"]
         stadium.city = data["venue"]["city"]["name"]
+        coord = list(
+            data["venue"]
+            .get("venueCoordinates", {"latitude": 0, "longitude": 0})
+            .values()
+        )
+        stadium.latitude = coord[0]
+        stadium.longitude = coord[1]
 
         return stadium

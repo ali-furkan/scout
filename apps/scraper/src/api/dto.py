@@ -1,6 +1,6 @@
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-from models import Team, TeamStat, Match, Player, PlayerStat
+from models import Team, TeamStat, Match, Player, PlayerStat, Stadium
 
 
 class TeamSchema(SQLAlchemyAutoSchema):
@@ -32,5 +32,11 @@ class PlayerSchema(SQLAlchemyAutoSchema):
 class PlayerStatSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = PlayerStat
+        load_instance = True
+        include_relationships = True
+
+class StadiumSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Stadium
         load_instance = True
         include_relationships = True

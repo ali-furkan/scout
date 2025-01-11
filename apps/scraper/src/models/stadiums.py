@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ARRAY, ForeignKey, String
+from sqlalchemy import Column, Integer, ARRAY, ForeignKey, String, Float
 from sqlalchemy.dialects.postgresql import UUID
 from uuid import uuid4
 from sqlalchemy.orm import relationship
@@ -15,3 +15,5 @@ class Stadium(Base):
     city = Column(String)
     slug = Column(String)
     team = relationship("Team", back_populates="stadium", uselist=False)
+    latitude = Column(Float)
+    longitude = Column(Float)

@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify, request
-from models import Team, Match, Player, TeamStat, PlayerStat
+from models import Team, Match, Player, TeamStat, PlayerStat, Stadium
 from .dto import (
     TeamSchema,
     MatchSchema,
     PlayerSchema,
     TeamStatsSchema,
     PlayerStatSchema,
+    StadiumSchema,
 )
 
 main_bp = Blueprint("main", __name__)
@@ -146,3 +147,13 @@ def get_team_stats_by_id(stat_id):
 def get_player_stats_by_id(stat_id):
     stats = main_bp.db_session.query(PlayerStat).filter_by(id=stat_id).first()
     return {"stats": PlayerStatSchema().dump(stats)}
+
+@main_bp.get("/stadium/<uuid:stadium_id>")
+def get_stadium(stadium_id):
+    s = main_bp.db_session.query(Stadium).filter_by(id=stadium_id).first()
+    return {"stadium": StadiumSchema().dump(s)}
+
+@main_bp.get("/stadiums")
+def get_stadiums():
+    stadiums = main_bp.db_session.query(Stadium).all()
+    return {"stadiums": StadiumSchema(many=True).dump(stadiums)}
