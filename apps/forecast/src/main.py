@@ -47,7 +47,7 @@ async def main():
         data_stats = await fetch(session, "/stats/teams?limit=400")
 
         matches = pd.DataFrame(data_matches["matches"])
-        fixtures = pd.DataFrame(data_matches["matches"])
+        fixtures = pd.DataFrame(data_fixtures["matches"])
         stats = pd.DataFrame(data_stats["stats"])
 
     stats, mif_model, features = prepare(matches.copy(), stats.copy())
@@ -82,8 +82,9 @@ async def main():
     models = train_model(X, y, 34)
 
     matches = []
+    fixtures = fixtures.sort_values("round")
     for _,f in fixtures.iterrows():
-        if f["round"] == 21:
+        if f["round"] == 23:
             break
         m = predict_fixture(f, stats, models, weights, features)
         matches.append(m)
@@ -96,7 +97,7 @@ async def main():
 def predict_fixture(fixture, stats, models, model_weights, features) -> dict:
     sf = match_strategy_predict(stats, fixture, features.values())
     fixture = time_factor(fixture)
-    
+
     # Convert hours and weekdays to numeric values
     X_pred = pd.DataFrame({
         "mif": [0.3, 0.3],
@@ -115,7 +116,7 @@ def predict_fixture(fixture, stats, models, model_weights, features) -> dict:
 
     # Ensure all columns are numeric
     X_pred = X_pred.astype(float)
-    
+
     pred = predict(X_pred, models, model_weights)
 
     lambda_home = pred[0]
@@ -139,8 +140,10 @@ def predict_fixture(fixture, stats, models, model_weights, features) -> dict:
 
     match = {}
     match["id"] = fixture["id"]
-    match["home_goals_prob"] = home_win_prob
-    match["away_goals_prob"] = away_win_prob
+    match["home_win_prob"] = home_win_prob
+    match["away_win_prob"] = away_win_prob
+    match["home_goals_probs"] = home_goal_probs
+    match["away_goals_probs"] = away_goal_probs
     match["draw_prob"] = draw_probs
 
     m = []
