@@ -1,12 +1,12 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import SpectralClustering
+from sklearn.cluster import KMeans
 
 class SkillFeature:
     name: str
     params: pd.DataFrame
     z_scored_params: pd.DataFrame
-    model: SpectralClustering
+    model: KMeans
     scaler: StandardScaler
     cluster_field: str
     results: pd.DataFrame
@@ -17,8 +17,9 @@ class SkillFeature:
         self.cluster_field = f"{self.name}_cluster"
         self.cols = cols
         self.params = params[self.cols].copy()
-        self.results = y
-        self.model = SpectralClustering(n_clusters=5, random_state=42)
+        # Create a fresh copy of y to avoid SettingWithCopyWarning
+        self.results = y.copy()
+        self.model = KMeans(n_clusters=5, random_state=42)
         self.scale()
 
     def scale(self):
@@ -28,16 +29,26 @@ class SkillFeature:
     def fit(self):
         self.model.fit(self.z_scored_params)
 
-        self.results[self.cluster_field] = self.model.labels_.astype("category")
+        # Use loc to properly set values
+        self.results.loc[:, self.cluster_field] = self.model.labels_
+        self.results.loc[:, self.cluster_field] = self.results[self.cluster_field].astype("category")
 
-        self.results["scores_xg_ratio"] = self.results["goals"].sum() / self.results["created_xg"].sum()
-        self.results["mean_xg"] = self.results["created_xg"].sum() / len(self.results)
-        self.results["mean_goals"] = self.results["goals"].sum() / len(self.results)
+        goals_sum = self.results["goals"].sum()
+        xg_sum = self.results["created_xg"].sum()
+        n_results = len(self.results)
+
+        self.results.loc[:, "scores_xg_ratio"] = goals_sum / xg_sum
+        self.results.loc[:, "mean_xg"] = xg_sum / n_results
+        self.results.loc[:, "mean_goals"] = goals_sum / n_results
+
+    def transform_data(self, data: pd.DataFrame):
+        return self.scaler.transform(data)
 
     def predict(self, data: pd.DataFrame):
-        z_scored_data = self.transform_data([data[self.cols]])
+        z_scored_data = self.transform_data(data[self.cols])
 
         return self.model.predict(z_scored_data)
+
 
 ATTACKS_COLS = [
     "big_chances_scored",
@@ -103,14 +114,12 @@ GOALKEEPING_COLS = [
 
 
 def get_xg_features(df: pd.DataFrame) -> dict["str", SkillFeature]:
-    attackFeat = SkillFeature("attacks", "", df[ATTACKS_COLS], ATTACKS_COLS)
-    passFeat = SkillFeature("passes", "", df[PASSES_COLS], PASSES_COLS)
-    shootFeat = SkillFeature("shoots", "", df[SHOOTS_COLS], SHOOTS_COLS)
-    duelFeat = SkillFeature("duels", "", df[DUELS_COLS], DUELS_COLS)
-    deadBallFeat = SkillFeature("deadBall", "", df[DEAD_BALL_COLS], DEAD_BALL_COLS)
-    defenseFeat = SkillFeature("defense", "", df[DEFENSE_COLS], DEFENSE_COLS)
-
-    gkFeat = SkillFeature("goalkeeping", "", df[GOALKEEPING_COLS], GOALKEEPING_COLS)
+    y = df[["goals", "created_xg"]]
+    attackFeat = SkillFeature("attacks", df[ATTACKS_COLS],y, ATTACKS_COLS)
+    passFeat = SkillFeature("passes", df[PASSES_COLS], y,PASSES_COLS)
+    shootFeat = SkillFeature("shoots", df[SHOOTS_COLS], y,SHOOTS_COLS)
+    duelFeat = SkillFeature("duels", df[DUELS_COLS], y,DUELS_COLS)
+    deadBallFeat = SkillFeature("deadBall", df[DEAD_BALL_COLS], y,DEAD_BALL_COLS)
 
     return {
         "attacks": attackFeat,
@@ -118,6 +127,14 @@ def get_xg_features(df: pd.DataFrame) -> dict["str", SkillFeature]:
         "shoots": shootFeat,
         "duels": duelFeat,
         "dead_ball": deadBallFeat,
+    }
+
+
+def get_gar_features(df: pd.DataFrame) -> dict["str", SkillFeature]:
+    defenseFeat = SkillFeature("defense", "", df[DEFENSE_COLS], DEFENSE_COLS)
+    gkFeat = SkillFeature("goalkeeping", "", df[GOALKEEPING_COLS], GOALKEEPING_COLS)
+    
+    return {
         "defense": defenseFeat,
         "goalkeeping": gkFeat,
     }
