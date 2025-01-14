@@ -3,6 +3,59 @@ from feats.fatigue_factor import fatigue_factor
 from feats.skill import SkillFeature, get_xg_features
 from feats.time_factor import time_factor
 
+from fetch import fetch
+import aiohttp
+
+async def fetch_match_history():
+    matches: pd.DataFrame
+    stats: pd.DataFrame
+
+    async with aiohttp.ClientSession() as session:
+        data_matches = await fetch(session, "/matches/results?limit=400")
+        data_stats = await fetch(session, "/stats/teams?limit=400")
+
+        matches = pd.DataFrame(data_matches["matches"])
+        stats = pd.DataFrame(data_stats["stats"])
+
+    return matches, stats
+
+async def fetch_fixtures():
+    fixtures: pd.DataFrame = None
+    async with aiohttp.ClientSession() as session:
+        data_fixtures = await fetch(session, "/matches/fixtures")
+  
+        fixtures_data = data_fixtures.get('matches', None)
+        
+        if not fixtures_data:
+            raise ValueError("No fixtures data received from API")
+            
+        fixtures = pd.DataFrame(fixtures_data)
+
+    return fixtures
+
+def handle_team_points(team_id: str,matches: pd.DataFrame) -> int:
+    m = matches.copy()
+    home_wins = m[(m["home_team"] == team_id) & (m["result"] == 1)].shape[0]
+    away_wins = m[(m["away_team"] == team_id) & (m["result"] == -1)].shape[0]
+    draws = m[((m["home_team"] == team_id) | (m["away_team"] == team_id)) & (m["result"] == 0)].shape[0]
+
+    return (home_wins + away_wins) * 3 + draws
+
+async def fetch_teams() -> pd.DataFrame:
+    teams: pd.DataFrame = None
+    async with aiohttp.ClientSession() as session:
+        data_teams = await fetch(session, "/teams")
+
+        teams_data = data_teams.get('teams', None)
+        
+        if not teams_data:
+            raise ValueError("No teams data received from API")
+            
+        teams = pd.DataFrame(teams_data)
+
+    return teams
+
+
 def handle_points(matches: pd.DataFrame) -> pd.DataFrame:
     # Create a copy of the DataFrame to avoid modifications on original
     matches = matches.copy()
@@ -51,62 +104,18 @@ def handle_points(matches: pd.DataFrame) -> pd.DataFrame:
 
     return matches
 
-from sklearn.ensemble import RandomForestRegressor
-
-def prepare(matches: pd.DataFrame, stats: pd.DataFrame) -> tuple[pd.DataFrame, RandomForestRegressor, dict[str,SkillFeature]]:
-    from feats.mif import create_mif_model, mif_series
-    feats = get_xg_features(stats)
-    # MIF model
-    matches = handle_points(matches)
-
-    mif_data = matches[
-        ["home_team", "away_team", "home_points", "away_points", "attendances"]
-    ].copy()
-    mif_model = create_mif_model(mif_data)
-    matches["impact"] = mif_series(mif_data)
-
-    # Fatigue factor
-    col_fatigue = handle_fatigue_data(matches)
-
-    stats = pd.merge(
-        stats,
-        col_fatigue,
-        left_on=["match", "team"],
-        right_on=["match_id", "team"],
-        how="left",
-    )
-
-    for _, row in matches.iterrows():
-        home_team_stats_id = row["teams_stats"][0]
-        away_team_stats_id = row["teams_stats"][1]
-
-        stats.loc[stats["id"] == home_team_stats_id, "played_at"] = row["played_at"]
-        stats.loc[stats["id"] == away_team_stats_id, "played_at"] = row["played_at"]
-
-        # mif
-        stats.loc[stats["id"] == home_team_stats_id, "impact"] = row["impact"]
-        stats.loc[stats["id"] == away_team_stats_id, "impact"] = row["impact"]
-
-    # Time factor hours, weekdays
-    stats = time_factor(stats)
-
-    for f in feats.values():
-        f.fit()
-        stats[f"{f.name}_cluster"] = f.results[f"{f.name}_cluster"]
-
-    return stats, mif_model, feats
-
 def handle_fatigue_data(matches: pd.DataFrame) -> pd.DataFrame:
+    m = matches.copy()
 
-    matches.rename(columns={"id": "match_id"}, inplace=True)
+    m.rename(columns={"id": "match_id"}, inplace=True)
 
     fatigue_data = (
         pd.concat(
             [
-                matches[["match_id", "played_at", "home_team"]].rename(
+                m[["match_id", "played_at", "home_team"]].rename(
                     columns={"home_team": "team"}
                 ),
-                matches[["match_id", "played_at", "away_team"]].rename(
+                m[["match_id", "played_at", "away_team"]].rename(
                     columns={"away_team": "team"}
                 ),
             ]

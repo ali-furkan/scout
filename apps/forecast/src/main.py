@@ -8,13 +8,12 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from scipy.stats import poisson
-import matplotlib.pyplot as plt
-import seaborn as sns
 import json
 
 from feats.skill import SkillFeature
 from feats.time_factor import time_factor
-from utils import prepare
+from train_data import gen_train_data, prepare_data, labelers
+from utils import fetch_match_history, fetch_fixtures, fetch_teams, handle_team_points
 
 async def fetch(session: aiohttp.ClientSession, endpoint):
     async with session.get(f"http://127.0.0.1:5000{endpoint}") as response:
@@ -37,84 +36,59 @@ def compute_test(name, model, X_train, X_test, y_train, y_test):
 
 
 async def main():
-    matches = None
-    fixtures = None
-    stats = None
+    matches, stats = await fetch_match_history()
+    teams = await fetch_teams()
 
-    async with aiohttp.ClientSession() as session:
-        data_matches = await fetch(session,"/matches/results?limit=400")
-        data_fixtures = await fetch(session,"/matches/fixtures?limit=400")
-        data_stats = await fetch(session, "/stats/teams?limit=400")
+    l = labelers(teams)
 
-        matches = pd.DataFrame(data_matches["matches"])
-        fixtures = pd.DataFrame(data_fixtures["matches"])
-        stats = pd.DataFrame(data_stats["stats"])
-
-    stats, mif_model, features = prepare(matches.copy(), stats.copy())
-
-    # trainning model
-    X = pd.DataFrame({
-        "mif": stats["impact"],
-        "fatigue": stats["fatigue"],
-        "hours": stats["hours"],
-        "weekdays": stats["weekdays"],
-    })
-
-    l = LabelEncoder()
-    X["mif"] = l.fit_transform(X["mif"])
-    X["fatigue"] = l.fit_transform(X["fatigue"])
-    X["hours"] = l.fit_transform(X["hours"])
-    X["weekdays"] = l.fit_transform(X["weekdays"])
-
-    for f in features.values():
-        X[f"{f.name}_cluster"] = stats[f"{f.name}_cluster"]
-        X[f"{f.name}_cluster"] = X[f"{f.name}_cluster"].astype("category")
-        X[f"{f.name}_cluster"] = LabelEncoder().fit_transform(X[f"{f.name}_cluster"])
-
-        X[f"{f.name}scores_xg_ratio"] = f.results["scores_xg_ratio"]
-        X[f"{f.name}mean_xg"] = f.results["mean_xg"]
-        X[f"{f.name}mean_goals"] = f.results["mean_goals"]
-
-    y = stats["created_xg"]
-
+    stats, features = prepare_data(matches.copy(), stats.copy(), l)
+    X, y = gen_train_data(stats, features)
+    print(X.iloc[0])
     a,b,weights = run_test_model(X, y, 34)
 
     models = train_model(X, y, 34)
 
-    matches = []
+    fmatches = []
+    fixtures = await fetch_fixtures()
     fixtures = fixtures.sort_values("round")
     for _,f in fixtures.iterrows():
         if f["round"] == 23:
             break
-        m = predict_fixture(f, stats, models, weights, features)
-        matches.append(m)
+        m = predict_fixture(f, stats, models, weights, features, l["team"], matches)
+        fmatches.append(m)
 
     with open("matches.json", "w") as f:
-        f.write(json.dumps(matches))
-        json.dumps(matches)
+        f.write(json.dumps(fmatches))
 
-
-def predict_fixture(fixture, stats, models, model_weights, features) -> dict:
+def predict_fixture(fixture, stats, models, model_weights, features, team_labeler: LabelEncoder, matches) -> dict:
     sf = match_strategy_predict(stats, fixture, features.values())
     fixture = time_factor(fixture)
 
-    # Convert hours and weekdays to numeric values
+    home_point = handle_team_points(fixture["home_team"], matches)
+    print("home", home_point)
+    away_point = handle_team_points(fixture["away_team"], matches)
+    print("home", away_point)
+
+    team_label = team_labeler.transform([fixture["home_team"], fixture["away_team"]])
+
+    # Create prediction DataFrame with explicit types
     X_pred = pd.DataFrame({
+        "team_label": [team_label[0], team_label[1]],
         "mif": [0.3, 0.3],
         "fatigue": [0.0, 0.0],
-        "hours": [int(fixture["hours"]), int(fixture["hours"])],  # Convert to int
-        "weekdays": [int(fixture["weekdays"]), int(fixture["weekdays"])],  # Convert to int
+        "hours": [int(fixture["hours"]), int(fixture["hours"])],
+        "weekdays": [int(fixture["weekdays"]), int(fixture["weekdays"])],
+        "points": [home_point, away_point],
     })
 
     for f in features.values():
         X_pred[f"{f.name}_cluster"] = sf[f"{f.name}_cluster"]
-        X_pred[f"{f.name}_cluster"] = LabelEncoder().fit_transform(X_pred[f"{f.name}_cluster"])
 
         X_pred[f"{f.name}scores_xg_ratio"] = f.results["scores_xg_ratio"]
         X_pred[f"{f.name}mean_xg"] = f.results["mean_xg"]
         X_pred[f"{f.name}mean_goals"] = f.results["mean_goals"]
 
-    # Ensure all columns are numeric
+    print(X_pred.iloc[0])
     X_pred = X_pred.astype(float)
 
     pred = predict(X_pred, models, model_weights)
@@ -162,9 +136,8 @@ def train_model(X,y,num) -> tuple[RandomForestRegressor, GradientBoostingRegress
         RandomForestRegressor(random_state=num, n_estimators=300, max_depth=32), X, y
     )
     b = compute_model(GradientBoostingRegressor(random_state=num), X, y)
-    c = compute_model(LGBMRegressor(random_state=num), X, y)
+    c = compute_model(LGBMRegressor(random_state=num),X,y)
 
-    # Fix: Create actual tuple instead of tuple type hint
     return (a, b, c)
 
 def predict(
@@ -172,7 +145,6 @@ def predict(
     models: tuple[RandomForestRegressor, GradientBoostingRegressor, LGBMRegressor],
     weights,
 ) -> np.ndarray:
-    # Remove unnecessary list conversion since models is already iterable
     pred = [model.predict(X) for model in models]
     return sum([w * p for w, p in zip(weights, pred)])
 
