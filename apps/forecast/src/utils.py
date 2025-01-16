@@ -1,7 +1,5 @@
 import pandas as pd
 from feats.fatigue_factor import fatigue_factor
-from feats.skill import SkillFeature, get_xg_features
-from feats.time_factor import time_factor
 
 from fetch import fetch
 import aiohttp
@@ -126,3 +124,32 @@ def handle_fatigue_data(matches: pd.DataFrame) -> pd.DataFrame:
 
     # Calculate fatigue
     return fatigue_factor(fatigue_data)
+
+
+def handle_fixture(l_home, l_away) -> dict:
+    from scipy.stats import poisson
+    max_goals = 8
+
+    home_goal_probs = [poisson.pmf(k, l_home) for k in range(max_goals)]
+    away_goal_probs = [poisson.pmf(k, l_away) for k in range(max_goals)]
+
+    draw_probs = sum(home_goal_probs[k] * away_goal_probs[k] for k in range(max_goals))
+
+    home_win_prob = sum(
+        home_goal_probs[i] * sum(away_goal_probs[j] for j in range(i))
+        for i in range(1, max_goals)
+    )
+    away_win_prob = sum(
+        away_goal_probs[i] * sum(home_goal_probs[j] for j in range(i))
+        for i in range(1, max_goals)
+    )
+
+    return {
+        "home_win_prob": home_win_prob,
+        "away_win_prob": away_win_prob,
+        "draw_prob": draw_probs,
+        "probabilities": {
+            "home": home_goal_probs,
+            "away": away_goal_probs,
+        },
+    }
