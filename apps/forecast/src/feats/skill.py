@@ -12,7 +12,7 @@ class SkillFeature:
     results: pd.DataFrame
     cols: list[str]
 
-    def __init__(self, name: str, params:pd.DataFrame, y: pd.DataFrame, cols: list[str]):
+    def __init__(self, name: str, params:pd.DataFrame = None, y: pd.DataFrame = None, cols: list[str]= None):
         self.name = name
         self.cluster_field = f"{self.name}_cluster"
         self.cols = cols
@@ -48,6 +48,18 @@ class SkillFeature:
         z_scored_data = self.transform_data(data[self.cols])
 
         return self.model.predict(z_scored_data)
+    
+    def export_models(self):
+        return [
+            {
+                "name": f"{self.name}_model",
+                "model": self.model,
+            },
+            {
+                "name": f"{self.name}_scaler",
+                "model": self.scaler,
+            },
+        ]
 
 
 ATTACKS_COLS = [

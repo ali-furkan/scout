@@ -8,6 +8,11 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from scipy.stats import poisson
+from build import build_model
+
+from models import tune_base_models
+from sklearn.ensemble import StackingRegressor
+import joblib
 import json
 
 from feats.skill import SkillFeature
@@ -26,27 +31,28 @@ def compute_model(model, X_train, y_train):
 
     return model
 
-def compute_test(name, model, X_train, X_test, y_train, y_test):
-    from sklearn.metrics import mean_squared_error
-
-    model.fit(X_train, y_train)
-    pred = model.predict(X_test)
-    print(name, mean_squared_error(y_test, pred))
-    return pred
-
 
 async def main():
     matches, stats = await fetch_match_history()
-    teams = await fetch_teams()
+    # teams = await fetch_teams()
 
-    l = labelers(teams)
+    # l = labelers(teams)
 
-    stats, features = prepare_data(matches.copy(), stats.copy(), l)
-    X, y = gen_train_data(stats, features)
-    print(X.iloc[0])
-    a,b,weights = run_test_model(X, y, 34)
+    # stats, features = prepare_data(matches.copy(), stats.copy(), l)
+    # X, y = gen_train_data(stats, features)
 
-    models = train_model(X, y, 34)
+    # train_data = X.copy()
+    # train_data["created_xg"] = y
+
+    # train_data.to_csv("train_data.csv", index=False)
+    # print(X.iloc[0])
+    model:StackingRegressor = joblib.load("stack_model_2025-01-15 22:01:56.443118.pkl")
+
+    l = joblib.load("labelers.pkl")
+    features = joblib.load("features.pkl")
+
+
+    # models = train_model(X, y, 34)
 
     fmatches = []
     fixtures = await fetch_fixtures()
@@ -54,13 +60,13 @@ async def main():
     for _,f in fixtures.iterrows():
         if f["round"] == 23:
             break
-        m = predict_fixture(f, stats, models, weights, features, l["team"], matches)
+        m = predict_fixture(f, stats, model, features, l["team"], matches)
         fmatches.append(m)
 
     with open("matches.json", "w") as f:
         f.write(json.dumps(fmatches))
 
-def predict_fixture(fixture, stats, models, model_weights, features, team_labeler: LabelEncoder, matches) -> dict:
+def predict_fixture(fixture, stats, model, features, team_labeler: LabelEncoder, matches) -> dict:
     sf = match_strategy_predict(stats, fixture, features.values())
     fixture = time_factor(fixture)
 
@@ -131,15 +137,6 @@ def predict_fixture(fixture, stats, models, model_weights, features, team_labele
 
     return match
 
-def train_model(X,y,num) -> tuple[RandomForestRegressor, GradientBoostingRegressor, LGBMRegressor]:
-    a = compute_model(
-        RandomForestRegressor(random_state=num, n_estimators=300, max_depth=32), X, y
-    )
-    b = compute_model(GradientBoostingRegressor(random_state=num), X, y)
-    c = compute_model(LGBMRegressor(random_state=num),X,y)
-
-    return (a, b, c)
-
 def predict(
     X: pd.DataFrame,
     models: tuple[RandomForestRegressor, GradientBoostingRegressor, LGBMRegressor],
@@ -147,29 +144,6 @@ def predict(
 ) -> np.ndarray:
     pred = [model.predict(X) for model in models]
     return sum([w * p for w, p in zip(weights, pred)])
-
-
-def run_test_model(X,y,r_num) -> tuple[list, list, list]:
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-
-    lgbm0 = LGBMRegressor(random_state=r_num)
-    a = compute_test("LGBM-cat", lgbm0, X_train, X_test, y_train, y_test)
-
-    rfr0 = RandomForestRegressor(random_state=r_num, n_estimators=300, max_depth=32)
-    b = compute_test("RFR-cat", rfr0, X_train, X_test, y_train, y_test)
-
-    gbr = GradientBoostingRegressor(random_state=r_num)
-    c = compute_test("GBR", gbr, X_train, X_test, y_train, y_test)
-
-    models = [a,b,c]
-    w = [mean_squared_error(y_test, pred) for pred in models]
-    inverse_rmse = [1 / rmse for rmse in w]
-    weights = [inv / sum(inverse_rmse) for inv in inverse_rmse]
-
-    return sum([w * pred for w, pred in zip(weights, models)]), y_test, weights
 
 
 def match_strategy_predict(
@@ -185,6 +159,7 @@ def match_strategy_predict(
         # Fill NaN values with mean for numerical columns
         t = t.fillna(t.mean(numeric_only=True))
         t_mean = t.mean(numeric_only=True)
+        m = match_data
         t_top_5_mean = t.nlargest(5, 'played_at').mean(numeric_only=True)
         t_predict = t_mean * 0.5 + t_top_5_mean * 0.5
 
