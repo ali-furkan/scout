@@ -352,7 +352,11 @@ class Scraper:
         stadium.slug = data["team"]["venue"]["slug"]
         stadium.capacity = data["team"]["venue"]["capacity"]
         stadium.city = data["team"]["venue"]["city"]["name"]
-        coord = data["team"]["venue"].get("venueCoordinates", {"latitude": 0, "longitude":0})
+        coord = list(
+            data["team"]["venue"]
+            .get("venueCoordinates", {"latitude": 0, "longitude": 0})
+            .values()
+        )
         stadium.latitude = coord[0]
         stadium.longitude = coord[1]
         team.stadium = stadium

@@ -65,7 +65,7 @@ def prepare_data(
         stats.loc[stats["id"] == home_team_stats_id, "played_at"] = row["played_at"]
         stats.loc[stats["id"] == away_team_stats_id, "played_at"] = row["played_at"]
 
-        # mif
+        # mif (deprecated feature)
         stats.loc[stats["id"] == home_team_stats_id, "impact"] = row["impact"]
         stats.loc[stats["id"] == away_team_stats_id, "impact"] = row["impact"]
 

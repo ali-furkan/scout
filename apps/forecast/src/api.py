@@ -73,13 +73,19 @@ def get_features():
     fd = {}
     for f in features.values():
         f: SkillFeature
+        fd[f.name] = {
+            "name": f.name,
+            "n_clusters": 5,
+            "clusters": [],
+            "cluster_centers": f.model.cluster_centers_.tolist()
+        }
         for i in range(5):
             instance = f.results.loc[f.results[f.cluster_field] == i].iloc[0]
-            fd[f.name] = {
-                "name": f.name,
+            fd[f.name]["clusters"] = {
+                "cat": i,
                 "scores_xg_ratio": instance["scores_xg_ratio"],
                 "mean_xg": instance["mean_xg"],
-                "mean_goals": instance["mean_goals"],
+                "mean_goals": instance["mean_goals"]
             }
 
     return {
