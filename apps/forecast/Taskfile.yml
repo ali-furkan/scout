@@ -1,6 +1,12 @@
 version: '3'
 
 tasks:
+  run_api:
+    cmds:
+      - poetry run python ./src/api.py
+  build:
+    cmds:
+      - poetry run python ./src/build.py
   install:
     cmds:
       - poetry install
