@@ -1,16 +1,19 @@
 from utils import fetch_match_history, fetch_teams
 from train_data import gen_train_data, prepare_data, labelers
+from prediction_data import prepare_fixture, team_strategy_predict
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
+import json
 
 import os
 import pandas as pd
 import joblib
 import datetime
+import asyncio
 
 from models import create_base_models, tune_base_models, create_stack_model
 
-async def extract_training_data(file = "train_data.csv"):
+async def extract_data(file = "train_data.csv"):
 
     matches, stats = await fetch_match_history()
     teams = await fetch_teams()
@@ -27,18 +30,24 @@ async def extract_training_data(file = "train_data.csv"):
     train_data = X.copy()
     train_data["created_xg"] = y
 
-    train_data.to_csv(file, index=False)
+    predicts = {}
+    for _, t in teams.iterrows():
+        predicts[t["id"]] = team_strategy_predict(
+            l["team"].transform([t["id"]])[0], X, features
+        )
 
-    return train_data
+    json.dump(predicts, open("teams_strategy_predicts.json", "w"))
+
+    train_data.to_csv(file, index=False)
 
 async def build_model():
     # extract data from the scraper_db to build the model
     data: pd.DataFrame = None
     if not os.path.exists("train_data.csv"):
-        data = await extract_training_data()
-    else:
-        with open("train_data.csv", "r") as f:
-            data = pd.read_csv(f)
+        await extract_data()
+
+    with open("train_data.csv", "r") as f:
+        data = pd.read_csv(f)
     # train the model
     models = create_base_models()
 
@@ -62,18 +71,19 @@ async def build_model():
         "y_test": y_test,
         "y_pred": y_pred
     })
-    print(li)
     print(f"Score: {mean_squared_error(y_test, y_pred)}")
 
     # export models to the models directory
     joblib.dump(stack_model, f"stack_model_{datetime.datetime.now()}.pkl")
 
 
-def main():
+async def main():
     print('Forecast app is running...')
+
+    await build_model()
 
 if __name__ == '__main__':
     print('Building forecast app...')
     # Build the forecast app here
-    main()
+    asyncio.run(main())
     print('Forecast ml built successfully!')

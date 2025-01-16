@@ -48,7 +48,7 @@ async def main():
     # print(X.iloc[0])
     model:StackingRegressor = joblib.load("stack_model_2025-01-15 22:01:56.443118.pkl")
 
-    l = joblib.load("labelers.pkl")
+    l: dict[str, LabelEncoder] = joblib.load("labelers.pkl")
     features = joblib.load("features.pkl")
 
 
@@ -56,18 +56,21 @@ async def main():
 
     fmatches = []
     fixtures = await fetch_fixtures()
+    team_prediction: dict[str, dict] = None
+    with open("teams_strategy_predicts.json", "r") as f:
+        team_prediction = json.load(f)
     fixtures = fixtures.sort_values("round")
     for _,f in fixtures.iterrows():
         if f["round"] == 23:
             break
-        m = predict_fixture(f, stats, model, features, l["team"], matches)
+            
+        m = predict_fixture(f, team_prediction, features, matches, model)
         fmatches.append(m)
 
     with open("matches.json", "w") as f:
         f.write(json.dumps(fmatches))
 
-def predict_fixture(fixture, stats, model, features, team_labeler: LabelEncoder, matches) -> dict:
-    sf = match_strategy_predict(stats, fixture, features.values())
+def predict_fixture(fixture, team_prediction, features, matches, model) -> dict:
     fixture = time_factor(fixture)
 
     home_point = handle_team_points(fixture["home_team"], matches)
@@ -75,29 +78,34 @@ def predict_fixture(fixture, stats, model, features, team_labeler: LabelEncoder,
     away_point = handle_team_points(fixture["away_team"], matches)
     print("home", away_point)
 
-    team_label = team_labeler.transform([fixture["home_team"], fixture["away_team"]])
+    labels = [
+        team_prediction[fixture["home_team"]]["team_label"],
+        team_prediction[fixture["away_team"]]["team_label"],
+    ]
 
     # Create prediction DataFrame with explicit types
-    X_pred = pd.DataFrame({
-        "team_label": [team_label[0], team_label[1]],
-        "mif": [0.3, 0.3],
-        "fatigue": [0.0, 0.0],
-        "hours": [int(fixture["hours"]), int(fixture["hours"])],
-        "weekdays": [int(fixture["weekdays"]), int(fixture["weekdays"])],
-        "points": [home_point, away_point],
-    })
+    X_pred = pd.DataFrame(
+        {
+            "team_label": labels,
+            "mif": [0.3, 0.3],
+            "fatigue": [0.0, 0.0],
+            "hours": [int(fixture["hours"]), int(fixture["hours"])],
+            "weekdays": [int(fixture["weekdays"]), int(fixture["weekdays"])],
+            "points": [home_point, away_point],
+        }
+    )
 
-    for f in features.values():
-        X_pred[f"{f.name}_cluster"] = sf[f"{f.name}_cluster"]
+    for t in [fixture["home_team"], fixture["away_team"]]:
+        for f in features.values():
+            X_pred[f"{f.name}_cluster"] = team_prediction[t][f"{f.name}_cluster"]
 
-        X_pred[f"{f.name}scores_xg_ratio"] = f.results["scores_xg_ratio"]
-        X_pred[f"{f.name}mean_xg"] = f.results["mean_xg"]
-        X_pred[f"{f.name}mean_goals"] = f.results["mean_goals"]
+            X_pred[f"{f.name}scores_xg_ratio"] = f.results["scores_xg_ratio"]
+            X_pred[f"{f.name}mean_xg"] = f.results["mean_xg"]
+            X_pred[f"{f.name}mean_goals"] = f.results["mean_goals"]
 
-    print(X_pred.iloc[0])
     X_pred = X_pred.astype(float)
 
-    pred = predict(X_pred, models, model_weights)
+    pred = model.predict(X_pred)
 
     lambda_home = pred[0]
     lambda_away = pred[1]
@@ -136,14 +144,6 @@ def predict_fixture(fixture, stats, model, features, team_labeler: LabelEncoder,
     match["heatmap"] = m
 
     return match
-
-def predict(
-    X: pd.DataFrame,
-    models: tuple[RandomForestRegressor, GradientBoostingRegressor, LGBMRegressor],
-    weights,
-) -> np.ndarray:
-    pred = [model.predict(X) for model in models]
-    return sum([w * p for w, p in zip(weights, pred)])
 
 
 def match_strategy_predict(

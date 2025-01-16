@@ -33,13 +33,16 @@ class SkillFeature:
         self.results.loc[:, self.cluster_field] = self.model.labels_
         self.results.loc[:, self.cluster_field] = self.results[self.cluster_field].astype("category")
 
-        goals_sum = self.results["goals"].sum()
-        xg_sum = self.results["created_xg"].sum()
-        n_results = len(self.results)
+        goals_mean = self.results.groupby(self.cluster_field)["goals"].mean().reset_index()
+        goals_mean.columns = [self.cluster_field, "mean_goals"]
 
-        self.results.loc[:, "scores_xg_ratio"] = goals_sum / xg_sum
-        self.results.loc[:, "mean_xg"] = xg_sum / n_results
-        self.results.loc[:, "mean_goals"] = goals_sum / n_results
+        xg_mean = self.results.groupby(self.cluster_field)["created_xg"].mean().reset_index()
+        xg_mean.columns = [self.cluster_field, "mean_xg"]
+
+        self.results = pd.merge(self.results, goals_mean, on=self.cluster_field, how="left")
+        self.results = pd.merge(self.results, xg_mean, on=self.cluster_field, how="left")
+
+        self.results.loc[:, "scores_xg_ratio"] = self.results["mean_goals"] / self.results["mean_xg"]
 
     def transform_data(self, data: pd.DataFrame):
         return self.scaler.transform(data)
@@ -48,7 +51,7 @@ class SkillFeature:
         z_scored_data = self.transform_data(data[self.cols])
 
         return self.model.predict(z_scored_data)
-    
+
     def export_models(self):
         return [
             {
