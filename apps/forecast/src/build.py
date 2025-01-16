@@ -11,7 +11,15 @@ import joblib
 import datetime
 import asyncio
 
-from models import create_base_models, tune_base_models, create_stack_model
+from models import (
+    create_base_models,
+    tune_base_models,
+    create_stack_model,
+    test_cv_model,
+)
+
+SKIP_TUNNING = os.getenv("SKIP_TUNNING", True)
+EXPORT_MODEL_PATH = os.getenv("MODEL_PATH", f"stack_model_{datetime.datetime.now()}.pkl")
 
 async def extract_data(file = "train_data.csv"):
 
@@ -54,27 +62,30 @@ async def build_model():
     X_train, X_test, y_train, y_test = train_test_split(
         data.copy().drop("created_xg", axis=1), 
         data['created_xg'].ravel(), 
-        test_size=0.15, 
+        test_size=0.2, 
         random_state=42
     )
-    # opt_res = tune_base_models(
-    #     models,
-    #     X_train,
-    #     y_train,
-    #     34,
-    # )
+
+    tune_opt_res: dict = None
+    if not SKIP_TUNNING:
+        tune_opt_res = tune_base_models(
+            models,
+            X_train,
+            y_train,
+            34,
+        )
     stack_model = create_stack_model(models)
+
+    score = test_cv_model(stack_model, X_train, y_train)
+
     stack_model.fit(X_train, y_train)
 
     y_pred = stack_model.predict(X_test)
-    li = pd.DataFrame({
-        "y_test": y_test,
-        "y_pred": y_pred
-    })
-    print(f"Score: {mean_squared_error(y_test, y_pred)}")
+    print(f"CV Train Score: {score}")
+    print(f"Test Score: {mean_squared_error(y_test, y_pred)}")
 
     # export models to the models directory
-    joblib.dump(stack_model, f"stack_model_{datetime.datetime.now()}.pkl")
+    joblib.dump(stack_model, EXPORT_MODEL_PATH)
 
 
 async def main():

@@ -1,5 +1,6 @@
 from utils import handle_points
 from feats.mif import create_mif_model
+from sklearn.model_selection import cross_val_score, KFold
 
 def prepare_models():
     # MIF model
@@ -77,17 +78,20 @@ def tune_base_models(models: list,X_train, y_train) -> list[dict[str, any]]:
             "best_score": opt.best_score_,  
         })
 
-    # kfold = KFold(5, shuffle=True, random_state=r_num)
-
-    # cvs = [cross_val_score(m["model"], X, y, cv=kfold, scoring="neg_mean_squared_error") for m in results]
-    # w = [abs(cv.mean()) for cv in cvs]
-    # inverse_rmse = [1 / rmse for rmse in w]
-    # weights = [inv / sum(inverse_rmse) for inv in inverse_rmse]
-
-    # print("Weights: ", weights)
-    # print("RMSE Scores: ", w)
-
     return results
+
+def test_cv_model(model, X_train, y_train) -> float:
+    kfold = KFold(5, shuffle=True, random_state=42)
+    cv = cross_val_score(
+        model,
+        X_train,
+        y_train,
+        cv=kfold,
+        scoring="neg_mean_squared_error",
+    )
+
+    return abs(cv.mean())
+
 
 
 from sklearn.ensemble import StackingRegressor
