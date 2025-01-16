@@ -34,25 +34,11 @@ def compute_model(model, X_train, y_train):
 
 async def main():
     matches, stats = await fetch_match_history()
-    # teams = await fetch_teams()
 
-    # l = labelers(teams)
-
-    # stats, features = prepare_data(matches.copy(), stats.copy(), l)
-    # X, y = gen_train_data(stats, features)
-
-    # train_data = X.copy()
-    # train_data["created_xg"] = y
-
-    # train_data.to_csv("train_data.csv", index=False)
-    # print(X.iloc[0])
     model:StackingRegressor = joblib.load("stack_model_2025-01-15 22:01:56.443118.pkl")
 
     l: dict[str, LabelEncoder] = joblib.load("labelers.pkl")
     features = joblib.load("features.pkl")
-
-
-    # models = train_model(X, y, 34)
 
     fmatches = []
     fixtures = await fetch_fixtures()
@@ -144,33 +130,6 @@ def predict_fixture(fixture, team_prediction, features, matches, model) -> dict:
     match["heatmap"] = m
 
     return match
-
-
-def match_strategy_predict(
-    stats: pd.DataFrame, match_data: pd.DataFrame, feats: list[SkillFeature]
-) -> pd.DataFrame:
-    home_team = stats.loc[stats["team"] == match_data["home_team"]]
-    away_team = stats.loc[stats["team"] == match_data["away_team"]]
-
-    # Initialize result DataFrame with proper index
-    res = pd.DataFrame(index=range(2))  # 2 rows for home and away teams
-    
-    for i, t in enumerate([home_team, away_team]):
-        # Fill NaN values with mean for numerical columns
-        t = t.fillna(t.mean(numeric_only=True))
-        t_mean = t.mean(numeric_only=True)
-        m = match_data
-        t_top_5_mean = t.nlargest(5, 'played_at').mean(numeric_only=True)
-        t_predict = t_mean * 0.5 + t_top_5_mean * 0.5
-
-        for f in feats:
-            feature_data = t_predict[f.cols].fillna(t_predict[f.cols].mean())
-            predicted_cat = f.predict(pd.DataFrame([feature_data]))
-            # Convert prediction to scalar value before assignment
-            res.at[i, f"{f.name}_cluster"] = predicted_cat[0]
-
-    return res
-
 
 if __name__ == '__main__':
     asyncio.run(main())
