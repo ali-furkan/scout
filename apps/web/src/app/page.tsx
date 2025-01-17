@@ -1,10 +1,13 @@
+import { FixtureCard } from "@/components/fixture-card";
+import { getStanding } from "@/utils/standing";
 import Image from "next/image";
 import Link from "next/link";
 
 
 export default async function Home() {
   const data = await fetch("http://localhost:5000/matches/fixtures").then((res) => res.json());
-  const { teams } = await fetch("http://localhost:5000/teams").then((res) => res.json());
+  const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
+  const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
   const analysis = await fetch("http://localhost:3000/matches.json").then((res) => res.json());
   const matches = await Promise.all(data.matches.map(async (match: any) => {
     const home_team = teams.find((team: any) => team.id === match.home_team);
@@ -18,37 +21,61 @@ export default async function Home() {
     };
   }));
 
+  const standing = getStanding(teams, results);
+
   return (
-    <div className="flex flex-col items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <h1 className="text-4xl">Scoutview</h1>
-      <h2 className="text-2xl font-bold">Fixture Prediction</h2>
-      <ul>
-        {matches.map((match: any, i) => match.round > 20 && (
-        <>
-            {match.round == matches[i - 1]?.round ? null : <h3 className="text-xl font-bold text-center">Round - {match.round}</h3>}
-            <Link href={`/matches/${match.id}`}>
-              <li key={match.id} className="flex flex-col cursor-pointer items-center justify-center p-7 my-4 border border-gray-200 rounded-xl">
-                <div>
-                  <span className="text-3xl font-bold text-center"><span style={{
-                    backgroundColor: match.home_team_.colors.primary,
-                    width: "10px",
-                    height: "10px",
-                  }}></span>{match.home_team_.name} - {match.away_team_.name}</span>
-                </div>
-                {match.analysis && (
-                  <div>
-                    <span className="text-sm font-bold">H: {Math.round(match.analysis.home_win_prob * 100)}% D: {Math.round(match.analysis.draw_prob * 100)}% A: {Math.round(match.analysis.away_win_prob * 100)}%</span>
-                  </div>
-                )}
-                <div className="flex flex-col items-center justify-center">
-                  <span className="text-lg">{new Date(match.played_at * 1000).toLocaleTimeString()} </span>
-                  <span className="">{new Date(match.played_at * 1000).toDateString()}</span>
-                </div>
-              </li>
+    <div className="max-w-6xl mx-auto p-8">
+      <h1 className="text-4xl font-extrabold text-center mb-6">Overview</h1>
+      <div className="flex justify-between gap-8 flex-col md:flex-row">
+        <div className="flex flex-1 flex-col w-full gap-y-4 py-2 rounded-xl">
+          <h2 className="text-2xl font-bold">Fixtures</h2>
+          <div className="flex flex-col gap-4 px-2">
+            {matches.filter(m => m.round > 20 && (m.played_at * 1000) > Date.now()).map((match: any, i, a) => match.round > 20 && i < 5 && (
+              <>
+                {match.round == a[i - 1]?.round ? null : <h3 className="text-xl font-bold text-center">Round - {match.round}</h3>}
+                <FixtureCard key={match.id} match={match} />
+              </>
+            ))}
+            <Link href="/matches">
+              <div className="flex items-center mt-4 justify-center dark:text-black text-white bg-black rounded-md px-4 py-1 dark:bg-white hover:opacity-80">
+                More Fixture Prediction
+              </div>
             </Link>
-        </>
-        ))}
-      </ul>
+          </div>
+        </div>
+        <div className="flex flex-col border rounded-lg px-3 py-4 justify-between my-auto gap-y-2">
+          <h2 className="text-2xl text-center font-bold">Standings</h2>
+          <div style={{
+            gridTemplateColumns: "auto 1fr 1fr 1fr 1fr"
+          }} className="grid text-right">
+                <span className="mr-4 font-bold text-left">Club</span>
+                <span className="font-bold">W</span>
+                <span className="font-bold">D</span>
+                <span className="font-bold">L</span>
+                <span className="flex-1 font-bold">P</span>
+            {standing.map((team: any, i) => i<10 && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">{team.position}.</span>
+                  <div className="w-5 h-5">
+                    <img className="w-5" src={`https://img.sofascore.com/api/v1/team/${team.sc_id}/image/small`} />
+                  </div>
+                  <span className="pr-4 text-left text-base">{team.name.length > 18 ? team.name.slice(0,15)+"...": team.name}</span>
+                </div>
+                <span className="text-lg">{team.wins}</span>
+                <span className="text-lg">{team.draws}</span>
+                <span className="text-lg">{team.losses}</span>
+                <span className="text-lg font-bold">{team.points}</span>
+              </>
+            ))}
+          </div>
+          <Link href="/tables">
+            <div className="flex items-center mt-4 justify-center dark:text-black text-white bg-black rounded-md px-4 py-1 dark:bg-white hover:opacity-80">
+              Show Detail
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

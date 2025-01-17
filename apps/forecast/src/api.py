@@ -1,10 +1,12 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 from sklearn.ensemble import StackingRegressor
 from feats.skill import SkillFeature
 from utils import handle_fixture
 import os
 import joblib
 import json
+
+import pandas as pd
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "model.pkl")
 FEATURE_PATH = os.environ.get("FEATURE_PATH", "features.pkl")
@@ -15,10 +17,13 @@ app = Flask(__name__)
 @app.post("/stats/predict")
 def predict():
     request_data = json.loads(request.get_data())
-    
-    params = request_data["params"]
 
-    prediction = app.model.predict(params)
+    params = request_data["params"]
+    X_pred = pd.json_normalize(params)
+
+    print("params length", X_pred.keys())
+
+    prediction = app.model.predict(X_pred).tolist()
     return {"prediction": prediction}
 
 @app.post("/fixture/predict")
@@ -35,10 +40,10 @@ def get_teams_strategy():
         "teams": app.strategy
     }
 
-@app.get("/team-strategy/<uuid:team_id>")
+@app.get("/team-strategy/<team_id>")
 def get_team_strategy(team_id):
     return {
-        "team": app.strategy[team_id]
+        "team": app.strategy.get(team_id, {})
     }
 
 @app.get("/model")
@@ -81,16 +86,16 @@ def get_features():
         }
         for i in range(5):
             instance = f.results.loc[f.results[f.cluster_field] == i].iloc[0]
-            fd[f.name]["clusters"] = {
+            fd[f.name]["clusters"].append({
                 "cat": i,
                 "scores_xg_ratio": instance["scores_xg_ratio"],
                 "mean_xg": instance["mean_xg"],
                 "mean_goals": instance["mean_goals"]
-            }
+            })
 
-    return {
+    return Response(json.dumps({
         "features": fd
-    }
+    }, sort_keys=False), mimetype="application/json")
 
 def init_app(a):
     a.model = joblib.load(MODEL_PATH)
