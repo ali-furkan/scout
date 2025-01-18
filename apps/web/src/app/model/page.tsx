@@ -23,10 +23,10 @@ export default async function ModelPage() {
                 </ul>
                 <p>
                     And These are the features used in the model:
-                    <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm my-2">
-                        {JSON.stringify(data.model.features_names, null, 2)}
-                    </pre>
                 </p>
+                <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm my-2">
+                    {JSON.stringify(data.model.features_names, null, 2)}
+                </pre>
                 <h3 className="text-xl font-bold">Verbose</h3>
                 <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md text-sm">
                     {JSON.stringify(data, null, 2)}
