@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-matches.json
+.models/
 
 # C extensions
 *.so
