@@ -8,4 +8,11 @@
 - Install [Remote - Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension in Visual Studio Code
 - Clone the repository and open it in Visual Studio Code
 - Click on the green icon in the bottom left corner of Visual Studio Code and select `Reopen in Container`
-- The development environment is setup and ready to use. Now you can run the project as `task run`
+- The development environment is setup and ready to use. Now you can run the project as `task <apps>:run`
+
+## Running the Project
+
+```bash
+docker-compose up -d
+```
+

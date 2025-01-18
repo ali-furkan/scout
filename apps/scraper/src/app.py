@@ -45,7 +45,7 @@ class App:
 
         from config import Config
         if Config.get_env() == 'development':
-            self.api.run(host=Config.get_host(), debug=True)
+            self.api.run(host=Config.get_host(), port=Config.get_port(), debug=True)
 
     def close(self) -> bool:
         # if self.scheduler.running:

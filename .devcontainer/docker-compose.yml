@@ -9,9 +9,10 @@ services:
     network_mode: service:db
     environment:
       SCRAPER_BASE_API: ${SCRAPER_BASE_API:-https://www.sofascore.com/api/v1}
-      SCRAPER_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db:5432/scraper"
-      SCRAPER_JOBS_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db:5432/jobs"
+      SCRAPER_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@scraper_db:5432/scraper"
+      SCRAPER_JOBS_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@scraper_db:5432/jobs"
   db:
+    container_name: scraper_db
     image: postgres
     restart: unless-stopped
     ports:

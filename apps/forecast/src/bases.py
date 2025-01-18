@@ -2,7 +2,7 @@ import datetime
 import os
 
 SKIP_OPTIMIZE = os.getenv("FORECAST_SKIP_OPTIMIZE", True)
-MODEL_PATH = os.getenv("FORECAST_MODEL_PATH", "./.models/")
+MODEL_PATH = os.getenv("FORECAST_MODEL_PATH", "../.models/")
 MODEL_TAG = os.getenv("FORECAST_MODEL_TAG", f"model_{datetime.datetime.now()}")
 
 def pathify(path):

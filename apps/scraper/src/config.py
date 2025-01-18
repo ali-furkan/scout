@@ -13,11 +13,11 @@ class Config:
 
     @staticmethod
     def get_db_url() -> str:
-        return os.getenv("SCRAPER_DB_URI", "postgresql://scraper:scraper@db:5432/scraper")
+        return os.getenv("SCRAPER_DB_URI", "postgresql://scraper:scraper@scraper_db:5432/scraper")
 
     @staticmethod
     def get_jobs_db_url() -> str:
-        return os.getenv("SCRAPER_JOBS_DB_URI", "postgresql://scraper:scraper@db:5432/jobs")
+        return os.getenv("SCRAPER_JOBS_DB_URI", "postgresql://scraper:scraper@scraper_db:5432/jobs")
 
     @staticmethod
     def get_league_id() -> str:
@@ -33,7 +33,7 @@ class Config:
 
     @staticmethod
     def get_port() -> int:
-        return int(os.getenv("SCRAPER_PORT", 5000))
+        return int(os.getenv("SCRAPER_PORT", 8000))
 
     @staticmethod
     def get_host() -> str:

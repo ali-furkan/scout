@@ -1,3 +1,5 @@
+import { fetchForecast, fetchScraper } from "./fetch";
+
 interface FixtureMatch {
     id: number;
     home_team: string;
@@ -40,12 +42,12 @@ interface Feature {
 }
 
 export const predictFixture = async (fixture_match: FixtureMatch, standings: any[]): Promise<{ fixture: any }> => {
-    const home_data = await fetch(`http://localhost:5001/team-strategy/${fixture_match.away_team}`).then((res) => res.json());
-    const away_data = await fetch(`http://localhost:5001/team-strategy/${fixture_match.away_team}`).then((res) => res.json());
+    const home_data = await fetchForecast(`/team-strategy/${fixture_match.away_team}`).then((res) => res.json());
+    const away_data = await fetchForecast(`/team-strategy/${fixture_match.away_team}`).then((res) => res.json());
     const home_team_strategy: TeamStrategy = home_data.team;
     const away_team_strategy: TeamStrategy = away_data.team;
 
-    const { features }: { features: { [key: string]: Feature } } = await fetch(`http://localhost:5001/features`).then((res) => res.json());
+    const { features }: { features: { [key: string]: Feature } } = await fetchForecast(`/features`).then((res) => res.json());
 
     const home_team_features = Object.keys(features).map((feature) => {
         const feature_data = features[feature].clusters[home_team_strategy[feature + "_cluster"]];
@@ -79,7 +81,7 @@ export const predictFixture = async (fixture_match: FixtureMatch, standings: any
         ...t.reduce((acc, curr) => ({ ...acc, ...curr }), {}),
     }));
 
-    const { prediction } = await fetch("http://localhost:5001/stats/predict", {
+    const { prediction } = await fetchForecast("/stats/predict", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -87,14 +89,13 @@ export const predictFixture = async (fixture_match: FixtureMatch, standings: any
         body: JSON.stringify({ "params": data })
     }).then((res) => res.json());
 
-    const result = await fetch("http://localhost:5001/fixture/predict", {
+    const result = await fetchForecast("/fixture/predict", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({ "home": prediction[0], "away": prediction[1] })
     }).then((res) => res.json());
-    console.log(result);
 
     return result;
 }

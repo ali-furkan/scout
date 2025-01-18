@@ -1,11 +1,13 @@
 version: '3'
 
 env:
-  CACHE_PATH: /workspaces/scoutview/.cache/
   FORECAST_SKIP_OPTIMIZE: true
   FORECAST_MODEL_PATH: /workspaces/scoutview/.cache/.models/
 
 tasks:
+  make_deps:
+    cmds:
+      - poetry export -o requirements.txt
   run:
     env:
       FORECAST_MODEL_TAG: model_latest

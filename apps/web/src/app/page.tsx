@@ -1,17 +1,18 @@
+import Link from "next/link";
+
 import { FixtureCard } from "@/components/fixture-card";
 import { getStanding } from "@/utils/standing";
 import { predictFixture } from "@/utils/predict";
-import Link from "next/link";
-
+import { fetchScraper } from "@/utils/fetch";
 
 export default async function Home() {
-  const { matches }: { matches: any[] } = await fetch("http://localhost:5000/matches/fixtures").then((res) => res.json());
-  const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
-  const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
+  let { matches }: { matches: any[] } = await fetchScraper("/matches/fixtures?limit=30").then((res) => res.json());
+  const results = await fetchScraper("/matches/results?limit=400").then((res) => res.json());
+  const { teams }: { teams: any[] } = await fetchScraper("/teams").then((res) => res.json());
 
   const standing = getStanding(teams, results);
 
-  const predictions = await Promise.all(matches.filter(m => (m.played_at * 1000) > Date.now()).map(async (m)=>{
+  const predictions = await Promise.all(matches.filter((m, i) => (m.played_at * 1000) > Date.now()).map(async (m)=>{
       const { fixture } = await predictFixture(m, standing);
 
       return {
@@ -29,7 +30,7 @@ export default async function Home() {
         <div className="flex flex-1 flex-col w-full gap-y-4 py-2 rounded-xl">
           <h2 className="text-2xl font-bold">Fixtures</h2>
           <div className="flex flex-col gap-4 px-2">
-            {predictions.map((match: any, i) => match.round > 20 && i < 5 && (
+            {predictions.map((match: any, i) => i < 5 && (
               <>
                 {match.round == predictions[i - 1]?.round ? null : <h3 className="text-xl font-bold text-center">Round - {match.round}</h3>}
                 <FixtureCard key={match.id} match={match} />

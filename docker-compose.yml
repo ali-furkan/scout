@@ -1,20 +1,32 @@
 services:
+  forecast:
+    ports:
+      - "8001:8001"
+    build:
+      dockerfile: ./apps/forecast/Dockerfile
   web:
     ports:
       - "3000:3000"
     build:
-      context: ./apps/web
+      context: ./apps/web/
       dockerfile: Dockerfile
+    depends_on:
+      - scraper
+      - forecast
+    environment:
+      SCRAPER_API_URL: http://scraper:8000
+      FORECAST_MODEL_API_URL: http://forecast:8001
   scraper:
     ports:
       - "8000:8000"
     build:
-      context: ./apps/scraper
-      dockerfile: Dockerfile
+      dockerfile: ./apps/scraper/Dockerfile
+    depends_on:
+      - db_scraper
     environment:
       SCRAPER_BASE_API: ${SCRAPER_BASE_API:-https://www.sofascore.com/api/v1}
-      SCRAPER_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db:5432/scraper"
-  db:
+      SCRAPER_DB_URI: "postgresql://${SCRAPER_PG_USER:-scraper}:${SCRAPER_PG_PASSWORD:-scraper}@db_scraper:5432/scraper"
+  db_scraper:
     image: postgres
     ports:
       - "5432:5432"

@@ -1,9 +1,11 @@
+import { fetchForecast } from "@/utils/fetch";
+
 interface Model {
     base_models: string[];
 }
 
 export default async function ModelPage() {
-    const data = await fetch("http://127.0.0.1:5001/model").then((res) => res.json());
+    const data = await fetchForecast("/model").then((res) => res.json());
     return (
         <div className="mx-auto p-4 max-w-6xl">
             <h1 className="text-4xl font-bold text-center">Model</h1>
@@ -17,8 +19,8 @@ export default async function ModelPage() {
                     This model is a combination of the following base models:{"\n"}
                 </p>
                 <ul className="list-disc list-inside ml-3 my-2">
-                    {data.model.base_models.map((model: string) => (
-                        <li>{model}</li>
+                    {data.model.base_models.map((model: string, i:number) => (
+                        <li key={i}>{model}</li>
                     ))}
                 </ul>
                 <p>

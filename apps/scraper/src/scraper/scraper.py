@@ -50,6 +50,7 @@ class ScraperConfig:
 class Scraper:
     def __init__(self, cfg: ScraperConfig):
         self.cache = {}
+        self.cache_size = 0
         self.config: ScraperConfig = cfg
         if os.path.exists(self.config.cache_file):
             with open(self.config.cache_file, "r") as f:
@@ -61,14 +62,17 @@ class Scraper:
             with open(self.config.cache_file, "w") as f:
                 f.write("{}")
 
+        self.cache_size = len(self.cache)
+
     def close(self):
-        with open(self.config.cache_file, "w") as f:
-            json.dump(self.cache, f)
+        if self.config.cache_enabled and self.cache_size != len(self.cache):
+            with open(self.config.cache_file, "w") as f:
+                json.dump(self.cache, f)
 
     async def fetch_api(self, session: aiohttp.ClientSession ,endpoint: str, cache: bool = True) -> dict:
         if self.config.cache_enabled and cache and endpoint in self.cache:
             c = self.cache[endpoint]
-            if (datetime.now().timestamp() - c["timestamp"]) < self.config.cache_ttl:
+            if True:# NOTE: Temporarily, it's inactive (datetime.now().timestamp() - c["timestamp"]) < self.config.cache_ttl:
                 return c["data"]
             else:
                 del self.cache[endpoint]

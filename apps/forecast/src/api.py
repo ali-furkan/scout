@@ -99,11 +99,13 @@ def get_features():
 
 
 def init_app(a):
+    print(os.path.exists(MODEL_FILE))
     a.model = joblib.load(MODEL_FILE)
     a.features = joblib.load(FEATURES_FILE)
     with open(TEAM_STRATEGY_FILE, "r") as f:
         a.strategy = json.load(f)
 
+init_app(app)
+
 if __name__ == "__main__":
-    init_app(app)
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=8001)

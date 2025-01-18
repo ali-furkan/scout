@@ -1,0 +1,2 @@
+export const fetchScraper = (uri: string, init?: RequestInit) => fetch(process.env.SCRAPER_API_URL + uri, init)
+export const fetchForecast = (uri: string, init?: RequestInit) => fetch(process.env.FORECAST_MODEL_API_URL + uri,init)

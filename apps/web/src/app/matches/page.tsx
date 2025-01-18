@@ -1,11 +1,13 @@
 import { FixtureCard } from "@/components/fixture-card";
 import { predictFixture } from "@/utils/predict";
 import { getStanding } from "@/utils/standing";
+import { fetchScraper } from "@/utils/fetch";
+
 
 export default async function MatchPage() {
-    let { matches }: { matches: any[] } = await fetch("http://localhost:5000/matches/fixtures?limit=30").then((res) => res.json());
-    const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
-    const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
+    let { matches }: { matches: any[] } = await fetchScraper("/matches/fixtures?limit=30").then((res) => res.json());
+    const results = await fetchScraper("/matches/results?limit=400").then((res) => res.json());
+    const { teams }: { teams: any[]} = await fetchScraper("/teams").then((res) => res.json());
     const standing = getStanding(teams, results);
 
     const predictions = await Promise.all(matches.filter(m => (m.played_at * 1000) > Date.now()).map(async (m)=>{

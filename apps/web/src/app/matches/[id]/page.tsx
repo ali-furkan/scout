@@ -1,5 +1,6 @@
 import { getStanding } from "@/utils/standing";
 import { predictFixture } from "@/utils/predict";
+import { fetchScraper } from "@/utils/fetch";
 
 interface Match {
     id: string;
@@ -15,9 +16,9 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
     const { id } = await params;
     console.log(id);
 
-    let { match } = await fetch(`http://localhost:5000/matches/${id}`).then((res) => res.json());
+    let { match } = await fetchScraper(`/matches/${id}`).then((res) => res.json());
 
-    const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
+    const { teams }: { teams: any[]} = await fetchScraper("/teams").then((res) => res.json());
     match = {
         ...match,
         home_team_: teams.find((t) => t.id === match.home_team),
@@ -25,7 +26,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
     }
 
     if(!match.is_finished) {
-        const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
+        const results = await fetchScraper("/matches/results?limit=400").then((res) => res.json());
         const standing = getStanding(teams, results);
 
         const { fixture } = await predictFixture(match, standing);
@@ -43,7 +44,7 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
         }
     } else {
         for (const stat_id of match.teams_stats) {
-            const { stats } = await fetch(`http://localhost:5000/stats/teams/${stat_id}`).then((res) => res.json());
+            const { stats } = await fetchScraper(`/stats/teams/${stat_id}`).then((res) => res.json());
             if(!match.stats) {
                 match.stats = [];
             }

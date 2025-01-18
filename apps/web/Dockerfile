@@ -14,7 +14,7 @@ RUN \
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
     elif [ -f package-lock.json ]; then npm ci; \
     elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-    else echo "Lockfile not found." && exit 1; \
+    else echo "Lockfile not found. deps" && exit 1; \
     fi
 
 
@@ -22,19 +22,23 @@ RUN \
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=deps /app/package-lock.json /app/package.json ./
+COPY src/ ./src
+COPY public/ ./public
+COPY next.config.ts postcss.config.mjs tailwind.config.ts tsconfig.json ./
+
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN \
-    if [ -f yarn.lock ]; then yarn run build; \
-    elif [ -f package-lock.json ]; then npm run build; \
-    elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
-    else echo "Lockfile not found." && exit 1; \
-    fi
+ENV SCRAPER_API_URL=""
+ENV FORECAST_MODEL_API_URL=""
+
+RUN echo $SCRAPER_API_URL
+
+RUN npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

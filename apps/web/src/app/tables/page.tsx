@@ -1,9 +1,10 @@
 import { getStanding } from "@/utils/standing";
+import { fetchScraper } from "@/utils/fetch";
 import Link from "next/link";
 
 export default async function TablePage() {
-    const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
-    const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
+    const results = await fetchScraper("/matches/results?limit=400").then((res) => res.json());
+    const { teams }: { teams: any[]} = await fetchScraper("/teams").then((res) => res.json());
     const standing = getStanding(teams, results);
 
     return (
