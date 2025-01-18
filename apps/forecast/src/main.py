@@ -1,24 +1,15 @@
 import aiohttp
 import asyncio
 import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-from lightgbm import LGBMRegressor
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import LabelEncoder
 from scipy.stats import poisson
-from build import build_model
 
-from models import tune_base_models
 from sklearn.ensemble import StackingRegressor
 import joblib
 import json
 
-from feats.skill import SkillFeature
 from feats.time_factor import time_factor
-from train_data import gen_train_data, prepare_data, labelers
-from utils import fetch_match_history, fetch_fixtures, fetch_teams, handle_team_points
+from utils import fetch_match_history, fetch_fixtures, handle_team_points
 
 async def fetch(session: aiohttp.ClientSession, endpoint):
     async with session.get(f"http://127.0.0.1:5000{endpoint}") as response:
@@ -60,9 +51,7 @@ def predict_fixture(fixture, team_prediction, features, matches, model) -> dict:
     fixture = time_factor(fixture)
 
     home_point = handle_team_points(fixture["home_team"], matches)
-    print("home", home_point)
     away_point = handle_team_points(fixture["away_team"], matches)
-    print("home", away_point)
 
     labels = [
         team_prediction[fixture["home_team"]]["team_label"],
