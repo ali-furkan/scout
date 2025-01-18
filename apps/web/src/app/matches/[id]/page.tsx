@@ -91,7 +91,9 @@ export default async function MatchPage({ params }: { params: Promise<{ id: stri
                                 writingMode: "vertical-lr",
                                 textOrientation: "sideways",
                             }} className="text-xl font-bold">Home Team</p>
-                            <div className="grid grid-cols-9 gap-4">
+                            <div style={{
+                                gridTemplateColumns: "auto repeat(8, 1fr)"
+                            }} className="grid gap-4">
                                 {match.heatmap.map((prob:any, i:any) =>
                                     <>
                                     {i % 8 == 0 && <div key={i+1000} className="p-4 w-fit ml-auto rounded-md text-base text-right">{Math.floor(i / 8)}</div>}

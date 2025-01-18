@@ -19,7 +19,7 @@ export default async function TablePage() {
                 away_team_: teams.find((t) => t.id === m.away_team),
                 analysis: fixture
             }
-        }))
+    }))
 
     const pteams = JSON.parse(JSON.stringify(teams));
     const standing2 = getStanding(pteams, { matches: predictions });
@@ -51,7 +51,7 @@ export default async function TablePage() {
             <h1 className="text-4xl font-bold">Tables</h1>
             <div className="flex flex-col ">
                 <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-500">Premier League Actual</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-500">Premier League Prediction Table</h3>
                     <Link href={"/tables"}>
                         <div className="flex items-center w-fit mt-4 justify-center dark:text-black text-white bg-black rounded-md px-4 py-1 dark:bg-white hover:opacity-80">
                             Go to Actual Table

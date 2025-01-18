@@ -1,27 +1,26 @@
 import { FixtureCard } from "@/components/fixture-card";
 import { getStanding } from "@/utils/standing";
-import Image from "next/image";
+import { predictFixture } from "@/utils/predict";
 import Link from "next/link";
 
 
 export default async function Home() {
-  const data = await fetch("http://localhost:5000/matches/fixtures").then((res) => res.json());
+  const { matches }: { matches: any[] } = await fetch("http://localhost:5000/matches/fixtures").then((res) => res.json());
   const results = await fetch("http://localhost:5000/matches/results?limit=400").then((res) => res.json());
   const { teams }: { teams: any[]} = await fetch("http://localhost:5000/teams").then((res) => res.json());
-  const analysis = await fetch("http://localhost:3000/matches.json").then((res) => res.json());
-  const matches = await Promise.all(data.matches.map(async (match: any) => {
-    const home_team = teams.find((team: any) => team.id === match.home_team);
-    const away_team = teams.find((team: any) => team.id === match.away_team);
-
-    return {
-      ...match,
-      home_team_: home_team,
-      away_team_: away_team,
-      analysis: analysis.find((a: any) => a.id === match.id)
-    };
-  }));
 
   const standing = getStanding(teams, results);
+
+  const predictions = await Promise.all(matches.filter(m => (m.played_at * 1000) > Date.now()).map(async (m)=>{
+      const { fixture } = await predictFixture(m, standing);
+
+      return {
+          ...m,
+          home_team_: teams.find((t) => t.id === m.home_team),
+          away_team_: teams.find((t) => t.id === m.away_team),
+          analysis: fixture
+      }
+  }))
 
   return (
     <div className="max-w-6xl mx-auto p-8">
@@ -30,9 +29,9 @@ export default async function Home() {
         <div className="flex flex-1 flex-col w-full gap-y-4 py-2 rounded-xl">
           <h2 className="text-2xl font-bold">Fixtures</h2>
           <div className="flex flex-col gap-4 px-2">
-            {matches.filter(m => m.round > 20 && (m.played_at * 1000) > Date.now()).map((match: any, i, a) => match.round > 20 && i < 5 && (
+            {predictions.map((match: any, i) => match.round > 20 && i < 5 && (
               <>
-                {match.round == a[i - 1]?.round ? null : <h3 className="text-xl font-bold text-center">Round - {match.round}</h3>}
+                {match.round == predictions[i - 1]?.round ? null : <h3 className="text-xl font-bold text-center">Round - {match.round}</h3>}
                 <FixtureCard key={match.id} match={match} />
               </>
             ))}
