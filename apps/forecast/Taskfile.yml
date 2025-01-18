@@ -1,15 +1,30 @@
 version: '3'
 
+env:
+  CACHE_PATH: /workspaces/scoutview/.cache/
+  FORECAST_SKIP_OPTIMIZE: true
+  FORECAST_MODEL_PATH: /workspaces/scoutview/.cache/.models/
+
 tasks:
-  run_api:
+  run:
+    env:
+      FORECAST_MODEL_TAG: model_latest
     cmds:
       - poetry run python ./src/api.py
   build:
     cmds:
+      - task: make_model_folder
       - poetry run python ./src/build.py
   install:
     cmds:
       - poetry install
-  run:
+  predict:
     cmds:
       - poetry run python ./src/main.py
+  make_model_folder:
+    internal: true
+    cmds:
+      - mkdir -p $FORECAST_MODEL_PATH
+  clean_models:
+    cmds:
+      - rm -rf $FORECAST_EXPORT_MODEL_PATH
