@@ -47,8 +47,7 @@ def create_base_models(mparams: dict=None, r_num: int=42) -> list:
 
     return models
 
-def tune_base_models(models: list,X_train, y_train) -> list[dict[str, any]]:
-    from sklearn.model_selection import train_test_split, cross_val_score, KFold
+def opt_base_models(models: list,X_train, y_train) -> list[dict[str, any]]:
     from skopt import BayesSearchCV
 
     grid = {
