@@ -8,9 +8,11 @@ import json
 
 import pandas as pd
 
-MODEL_PATH = os.environ.get("MODEL_PATH", "model.pkl")
-FEATURE_PATH = os.environ.get("FEATURE_PATH", "features.pkl")
-STRATEGY_PATH = os.environ.get("STRATEGY_PATH", "teams_strategy_predicts.json")
+from bases import (
+    MODEL_FILE,
+    FEATURES_FILE,
+    TEAM_STRATEGY_FILE,
+)
 
 app = Flask(__name__)
 
@@ -20,8 +22,6 @@ def predict():
 
     params = request_data["params"]
     X_pred = pd.json_normalize(params)
-
-    print("params length", X_pred.keys())
 
     prediction = app.model.predict(X_pred).tolist()
     return {"prediction": prediction}
@@ -59,7 +59,7 @@ def get_model():
 
     return {
         "model": {
-            "name": MODEL_PATH,
+            "name": "model",
             "type": type(m).__name__,
             "base_models": [type(e).__name__ for e in m.estimators_],
             "final_model": type(m.final_estimator_).__name__,
@@ -97,10 +97,11 @@ def get_features():
         "features": fd
     }, sort_keys=False), mimetype="application/json")
 
+
 def init_app(a):
-    a.model = joblib.load(MODEL_PATH)
-    a.features = joblib.load(FEATURE_PATH)
-    with open(STRATEGY_PATH, "r") as f:
+    a.model = joblib.load(MODEL_FILE)
+    a.features = joblib.load(FEATURES_FILE)
+    with open(TEAM_STRATEGY_FILE, "r") as f:
         a.strategy = json.load(f)
 
 if __name__ == "__main__":
