@@ -7,7 +7,9 @@ The system is designed as an end-to-end pipeline: data collection, feature engin
 ## Development Environment
 
 [devcontainer](https://code.visualstudio.com/docs/devcontainers/containers) used to set up the development environment. Once the environment is ready to use, you can run the project with:
-```task <apps>:run```
+```bash
+task <apps>:run
+```
 
 ## Running the Project
 
